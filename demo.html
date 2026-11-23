@@ -79,7 +79,7 @@
     const SUPABASE_URL='https://fijrjgveofimecrlygez.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY='sb_publishable_cXgTDnxxddEYcFfYW_Z0xw_ZBKClU9T';
     const API=`${SUPABASE_URL}/functions/v1/jingle-api`;
-    const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,flowType:'implicit'}});
     const $=id=>document.getElementById(id);
     const MODE=DEMO?'demo':'official';
     let state={participant:null,today:0,people:[],answers:[],leaderboard:[]},admin=null,editDay=1,chosen=null,activeDay=null,playable=false,unlocked=false;
@@ -167,14 +167,53 @@
       if(!unlocked){const code=prompt('Organizer code:');if(code!=='DJADJA'){if(code!==null)alert('Incorrect organizer code.');return;}unlocked=true;}
       showAdminEntry();await loadAdmin();
     }
+    async function verifiedOrganizerSession(){
+      const {data:{user},error}=await client.auth.getUser();
+      if(error)throw new Error('Supabase sign-in: '+error.message);
+      if(!user || user.is_anonymous || !user.email)throw new Error('No verified email session in this browser. Open the newest sign-in link in this same browser, then try again.');
+      if(!user.email_confirmed_at)throw new Error('Your email session is not confirmed yet. Please use a fresh sign-in link.');
+      return user;
+    }
     async function loadAdmin(){
-      try{admin=await api(`/admin-data?mode=${MODE}`);$('adminEntry').classList.add('hidden');$('adminView').classList.remove('hidden');renderAdmin();}
-      catch(err){status('adminEmailStatus','Organizer email verification required. Enter your email and request a sign-in link.',true);}
+      $('checkAdmin').disabled=true;
+      try{
+        const user=await verifiedOrganizerSession();
+        status('adminEmailStatus',`Signed in as ${user.email}. Checking organizer permissions…`);
+        admin=await api(`/admin-data?mode=${MODE}`);
+        $('adminEntry').classList.add('hidden');$('adminView').classList.remove('hidden');renderAdmin();
+      }catch(err){status('adminEmailStatus',err.message,true);}
+      finally{$('checkAdmin').disabled=false;}
     }
     async function sendAdminEmail(e){
       e.preventDefault();const email=$('adminEmail').value.trim();status('adminEmailStatus','Sending your sign-in email…');
-      const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
-      status('adminEmailStatus',error?error.message:'Check your inbox, click the link, then open Organizer again.',Boolean(error));
+      try{
+        const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+        if(error)throw error;
+        status('adminEmailStatus','Email sent. Open the NEWEST link in this browser. Links can expire or be used only once.');
+      }catch(err){status('adminEmailStatus',err.message,true);}
+    }
+    async function handleAuthReturn(){
+      const params=new URLSearchParams(location.search),hash=new URLSearchParams(location.hash.slice(1));
+      const authError=params.get('error_description')||hash.get('error_description');
+      if(authError){
+        showAdminEntry();status('adminEmailStatus',`Email link error: ${authError.replaceAll('+',' ')}. Request a new link.`,true);
+        history.replaceState(null,'',location.pathname);return;
+      }
+      const returning=hash.has('access_token')||params.has('code');
+      if(returning){
+        showAdminEntry();status('adminEmailStatus','Completing email sign-in…');
+        // Supabase processes the URL callback asynchronously during client initialization.
+        for(let attempt=0;attempt<12;attempt++){
+          const {data:{user}}=await client.auth.getUser();
+          if(user?.email && !user.is_anonymous){
+            $('adminEmail').value=user.email;
+            history.replaceState(null,'',location.pathname);
+            await loadAdmin();return;
+          }
+          await new Promise(resolve=>setTimeout(resolve,250));
+        }
+        status('adminEmailStatus','Could not establish an email session. Request a fresh link and open it in the same browser.',true);
+      }
     }
     function renderAdmin(){
       const grid=$('adminDays');grid.replaceChildren();const list=admin.cases||[];
@@ -233,7 +272,7 @@
     $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
     $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;$('checkAdmin').onclick=loadAdmin;
     $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=()=>$('adminView').classList.add('hidden');$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
-    checkConnection();restorePlayer();setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
+    checkConnection();handleAuthReturn().then(()=>restorePlayer());setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
   </script>
 </body>
 </html>
