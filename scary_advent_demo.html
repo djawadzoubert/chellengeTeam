@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scary Music Advent — Demo</title>
+  <style>
+    :root { --orange:#f87520; --deep:#86370f; --ink:#2a180e; --cream:#fffaf4; --paper:#fff4e8; --gold:#ffc65c; --line:#efd5bf; --muted:#82654f; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif; color:var(--ink); background:radial-gradient(circle at 8% 0,#ffe1bd 0,transparent 32%),radial-gradient(circle at 95% 15%,#ffbe83 0,transparent 25%),#ffeedb; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,input:focus-visible,select:focus-visible { outline:3px solid #fbaa49;outline-offset:2px; }
+    .shell { max-width:1100px;margin:0 auto;padding:22px 22px 58px; }
+    .topbar { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px; }
+    .brand { font-size:13px;letter-spacing:.2em;font-weight:900;color:#8a3a0d; }
+    .top-actions { display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+    .badge { display:inline-block;border-radius:99px;background:#ffce96;color:#73340e;padding:9px 13px;font-size:12px;font-weight:900;letter-spacing:.03em; }
+    .badge.demo { background:#312015;color:#fff3de; }
+    .hero { position:relative;overflow:hidden;background:linear-gradient(125deg,#ff913f,#f76b16 56%,#d44d0a);color:#fff;border-radius:28px;padding:44px 40px 35px;box-shadow:0 24px 50px #a64a1a2a;margin-bottom:22px; }
+    .hero:after { content:'✦  ❄   ✨   ✦   ❄';position:absolute;right:-20px;top:0;transform:rotate(-13deg);font-size:40px;opacity:.3;white-space:nowrap; }
+    .hero .eyebrow { font-weight:900;font-size:13px;letter-spacing:.24em;opacity:.87; }
+    h1 { margin:10px 0;font-size:clamp(39px,7vw,76px);letter-spacing:-.065em;line-height:.97;max-width:680px; }
+    .hero p { margin:18px 0 0;color:#fff6e8;font-size:17px; }
+    .hero .decoration { margin-top:18px;letter-spacing:1.8em;font-size:22px; }
+    .panel { border:1px solid var(--line);background:#fffaf6;border-radius:23px;padding:26px;margin:17px 0;box-shadow:0 10px 30px #8d461119; }
+    .section-head { display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+    h2 { font-size:clamp(21px,3vw,29px);letter-spacing:-.03em;margin:0 0 9px; }
+    h3 { font-size:19px;letter-spacing:-.02em;margin:0 0 10px; }
+    .subtle { color:var(--muted);font-size:14px;line-height:1.55;margin:7px 0 16px; }
+    .grid2 { display:grid;grid-template-columns:1fr 1fr;gap:15px; }
+    label { display:block;font-size:12px;font-weight:850;text-transform:uppercase;letter-spacing:.05em;color:#98501d;margin:7px 0 8px; }
+    input,select { display:block;width:100%;border:1px solid #e7c4a6;background:#fff;padding:13px 13px;border-radius:13px;color:#312015;font-size:15px; }
+    input[type=file] { padding:10px;font-size:13px;background:#fff8ef; }
+    .buttons { display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:17px; }
+    .btn { border:0;border-radius:13px;background:var(--orange);color:white;font-weight:850;padding:12px 17px;box-shadow:0 6px 13px #d9541826; }
+    .btn:hover { filter:brightness(1.045); }
+    .btn.alt { background:#62341e; }
+    .btn.light { background:#ffead6;color:#923e11;box-shadow:none; }
+    .btn.tiny { padding:9px 12px;font-size:13px; }
+    .btn:disabled { opacity:.45;cursor:not-allowed; }
+    .hidden { display:none!important; }
+    .calendar { display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-top:18px; }
+    .day { min-height:108px;border:1px solid #efcaac;border-radius:16px;background:linear-gradient(140deg,#fff1de,#ffead1);color:#713a16;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;transition:transform .12s; }
+    .day strong { font-size:28px;font-weight:900; }
+    .day span { font-size:11px;font-weight:750; }
+    .day.available { background:linear-gradient(145deg,#ffad56,#f76a16);color:#fff;box-shadow:0 9px 20px #e96c1938; }
+    .day.available:hover { transform:translateY(-3px); }
+    .day.locked { opacity:.55;cursor:not-allowed; }
+    .day.completed { color:#256c40;background:#e1f5e8;border-color:#a1d9b5;cursor:not-allowed; }
+    .day.past { background:#eee8e2;color:#8b8075;cursor:not-allowed; }
+    .note { border-radius:14px;padding:13px 15px;background:#fff0dc;color:#78401c;font-size:14px;line-height:1.5;margin-top:15px; }
+    .progress { height:10px;background:#fae2cc;border-radius:12px;overflow:hidden; }
+    .progress > div { height:100%;background:linear-gradient(90deg,#f87520,#ffc35e);width:0%; }
+    .choices { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:17px 0; }
+    .choice { border:1px solid #e8bd99;border-radius:14px;padding:16px 10px;background:#fff0df;color:#74401d;font-weight:850; }
+    .choice:hover { background:#ffe1bf; }
+    .choice.selected { background:#f87520;border-color:#d4530a;color:white; }
+    audio { width:100%;margin:10px 0; }
+    .reveal { background:linear-gradient(125deg,#ff9a45,#ed6815);border-radius:20px;padding:27px;color:#fff;margin-top:18px;position:relative;overflow:hidden; }
+    .reveal h2 { font-size:36px; }
+    .scores { display:grid;gap:8px; }
+    .score { border-radius:12px;background:#fff1e3;display:flex;justify-content:space-between;gap:10px;padding:12px 14px;font-size:14px; }
+    .admin-shell { margin-top:20px; }
+    .admin-top { display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px; }
+    .admin-grid { display:grid;grid-template-columns:minmax(260px,.95fr) minmax(340px,1.35fr);gap:18px;margin-top:17px; }
+    .admin-day-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px; }
+    .admin-day { border-radius:11px;border:1px solid #efd0b8;background:#fff4e9;padding:12px 4px;text-align:center;color:#a64a15;font-size:13px;font-weight:850; }
+    .admin-day b { display:block;font-size:19px;margin-bottom:2px; }
+    .admin-day small { display:block;color:#8c694c;font-size:10px; }
+    .admin-day.selected { background:#f87520;color:#fff;border-color:#f87520; }
+    .admin-day.selected small { color:#fff3e7; }
+    .admin-day.ready:not(.selected) { background:#e6f7ea;color:#287947;border-color:#b9e2c6; }
+    .admin-day.ready:not(.selected) small { color:#287947; }
+    .admin-editor { background:#fff4e8;border:1px solid #eed2bd;border-radius:18px;padding:20px; }
+    .status { min-height:18px;margin-top:10px;font-size:13px;font-weight:750;color:#26663e; }
+    .danger { color:#a52e18; }
+    .label-row { display:flex;gap:12px;align-items:center; }
+    .label-row label { margin:0; }
+    .label-row input { width:auto; }
+    .field-sep { height:1px;background:#ebd3bf;margin:19px 0; }
+    #fireworks {position:fixed;inset:0;pointer-events:none;z-index:50;}
+    footer { text-align:center;font-size:12px;color:#9a7355;padding:15px 0; }
+    @media(max-width:830px) { .calendar {grid-template-columns:repeat(4,1fr);} .choices{grid-template-columns:repeat(2,1fr);} .admin-grid{grid-template-columns:1fr;} }
+    @media(max-width:560px) { .shell{padding:14px;} .hero{padding:30px 22px;} .panel{padding:19px;} .grid2{grid-template-columns:1fr;} .calendar{grid-template-columns:repeat(3,1fr);gap:8px;} .day{min-height:88px;} .admin-day-grid{grid-template-columns:repeat(4,1fr);} }
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
+  </style>
+</head>
+<body>
+  <canvas id="fireworks" aria-hidden="true"></canvas>
+  <main class="shell">
+    <div class="topbar">
+      <div class="brand">🎄 SCARY TEAM EXPERIENCE</div>
+      <div class="top-actions">
+        <span id="modeBadge" class="badge demo">DEMO · DEC 1, 2026</span>
+        <button class="btn alt tiny" id="adminAccess">🔒 Organizer</button>
+      </div>
+    </div>
+    <header class="hero">
+      <div class="eyebrow">THE CHRISTMAS MUSIC MYSTERY</div>
+      <h1>WHO'S BEHIND<br>THE SOUND?</h1>
+      <p>24 days. 24 mystery tracks. 16 suspects. One legendary leaderboard.</p>
+      <div class="decoration">🎧 ✨ 🎄 🎆</div>
+    </header>
+
+    <section id="loginView" class="panel">
+      <h2>Welcome, music detective! 🕵️</h2>
+      <p class="subtle">Ready to discover your colleagues' secret playlists? Enter your first and last name to begin.</p>
+      <form id="loginForm">
+        <div class="grid2">
+          <div><label for="firstName">First name</label><input id="firstName" autocomplete="given-name" maxlength="60" required placeholder="Your first name" /></div>
+          <div><label for="lastName">Last name</label><input id="lastName" autocomplete="family-name" maxlength="60" required placeholder="Your last name" /></div>
+        </div>
+        <div class="buttons"><button class="btn" type="submit">Enter the Advent Calendar →</button></div>
+      </form>
+    </section>
+
+    <section id="calendarView" class="panel hidden">
+      <div class="section-head"><div><h2>🎁 Your Advent Calendar</h2><p class="subtle" id="greeting"></p></div><span class="badge">DECEMBER 2026</span></div>
+      <div class="progress"><div id="progressFill"></div></div><div class="subtle" id="progressText"></div>
+      <div class="calendar" id="calendarGrid"></div>
+      <div id="calendarMessage" class="note" role="status"></div>
+      <div class="buttons"><button id="switchPlayer" class="btn light">Not you? Switch player</button></div>
+    </section>
+
+    <section id="gameView" class="panel hidden">
+      <div class="section-head"><div><span class="badge" id="caseTag">CASE #01</span><h2 style="margin-top:14px">Who chose this track?</h2><p class="subtle">Listen closely... then make your guess!</p></div><button class="btn light tiny" id="backToCalendar">← Calendar</button></div>
+      <div id="audioPlayer"></div>
+      <div class="choices" id="answerChoices"></div>
+      <div class="buttons"><button class="btn" id="submitAnswer" disabled>Lock in my answer 🔐</button></div>
+      <div class="reveal hidden" id="revealPanel" role="status"><div style="letter-spacing:.17em;font-size:12px;font-weight:900">🎇 THE BIG REVEAL 🎇</div><h2 id="revealName"></h2><p id="revealText"></p><button class="btn alt" id="finishCase">Back to my calendar →</button></div>
+    </section>
+
+    <section id="leaderboardPanel" class="panel hidden"><div class="section-head"><div><h2>🏆 Local leaderboard</h2><p class="subtle">Scores saved in this browser only in this prototype.</p></div></div><div class="scores" id="leaderboard"></div></section>
+
+    <section id="adminView" class="panel admin-shell hidden">
+      <div class="admin-top"><div><h2>🔐 Organizer studio</h2><p class="subtle">Prepare all 24 cases now, and edit any of them later.</p></div><button class="btn light tiny" id="closeAdmin">Close organizer</button></div>
+      <div class="note">🎶 Choose a case, assign its song, upload an audio clip and select the correct colleague. Changes save in <b>this browser</b> and remain editable. For a shared live challenge, a server and shared media storage are still needed.</div>
+      <div class="field-sep"></div>
+      <label for="suspectsInput">Colleagues — one name per line</label><textarea id="suspectsInput" rows="4" style="width:100%;font:inherit;resize:vertical;padding:13px;border:1px solid #e7c4a6;border-radius:12px"></textarea>
+      <div class="buttons"><button id="saveSuspects" class="btn light tiny">Save colleagues</button><span id="suspectsStatus" class="status" role="status"></span></div>
+      <div class="admin-grid">
+        <div><h3>🎄 Your 24 cases</h3><p class="subtle"><span style="color:#2d944f">●</span> Ready &nbsp; <span style="color:#f87520">●</span> Selected &nbsp; ○ To configure</p><div class="admin-day-grid" id="adminCases"></div><div class="note" id="configuredCount"></div></div>
+        <div class="admin-editor">
+          <h3 id="editingTitle">Edit case 01</h3>
+          <form id="caseForm">
+            <label for="songTitle">Song title</label><input id="songTitle" placeholder="E.g. Pour que tu m'aimes encore" required />
+            <label for="songArtist">Artist</label><input id="songArtist" placeholder="E.g. Céline Dion" required />
+            <label for="songOwner">Correct answer — who submitted it?</label><select id="songOwner" required></select>
+            <label for="songAudio">Audio excerpt (MP3, WAV, M4A...)</label><input id="songAudio" type="file" accept="audio/*" />
+            <p class="subtle" id="audioStatus">No audio uploaded yet.</p>
+            <div class="label-row"><input id="removeAudio" type="checkbox" /><label for="removeAudio">Remove saved audio from this case</label></div>
+            <div class="buttons"><button class="btn" type="submit" id="saveCaseBtn">💾 Save this case</button><button class="btn light" type="button" id="clearCase">Clear case</button></div>
+            <div id="caseStatus" class="status" role="status"></div>
+          </form>
+        </div>
+      </div>
+      <div class="field-sep"></div>
+      <h3>🧪 Test utilities</h3><p class="subtle">Use these only while testing. The live version does not simulate the date.</p>
+      <div class="buttons"><button id="resetDemo" class="btn light tiny">Reset local test scores & progress</button></div>
+      <div class="field-sep"></div>
+      <h3>📦 Backup your 24 cases</h3>
+      <p class="subtle">Download a private backup of the case settings <strong>including the uploaded audio</strong>. Keep it confidential: it contains the correct answers. Restoring a backup replaces the organizer's current setup in this browser.</p>
+      <div class="buttons"><button id="exportBackup" class="btn alt tiny">⬇ Download organizer backup</button><label for="importBackup" class="btn light tiny" style="display:inline-block;margin:0;cursor:pointer;text-transform:none;letter-spacing:0">⬆ Restore backup</label><input id="importBackup" type="file" accept="application/json,.json" style="display:none" /></div>
+      <div id="backupStatus" class="status" role="status"></div>
+    </section>
+    <footer>🧡 SCARY MUSIC ADVENT • A festive surprise every day</footer>
+  </main>
+  <script>
+  (() => {
+    'use strict';
+    const DEMO = true; // Official build changes this flag to false.
+    const STORAGE_KEY = 'scary-advent-v4-demo';
+    const DEFAULT_NAMES = ['Djawad','Mohamed','Andrey','Yann','Rania','Colleague 6','Colleague 7','Colleague 8','Colleague 9','Colleague 10','Colleague 11','Colleague 12','Colleague 13','Colleague 14','Colleague 15','Colleague 16'];
+    const $ = id => document.getElementById(id);
+    const blankState = () => ({names:DEFAULT_NAMES.slice(),cases:{},scores:{}});
+    let state;
+    try { state=JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState(); } catch { state=blankState(); }
+    if(!Array.isArray(state.names))state.names=DEFAULT_NAMES.slice();
+    if(!state.cases || typeof state.cases!=='object')state.cases={};
+    if(!state.scores || typeof state.scores!=='object')state.scores={};
+    let player=null,selected=null,activeDay=1,adminDay=1,unlocked=false,previewUrl=null,playable=false;
+
+    // Audio is stored separately so that 24 uploaded clips do not overflow localStorage.
+    const dbPromise=new Promise(resolve=>{
+      if(!('indexedDB' in window)){resolve(null);return;}
+      let req=indexedDB.open('scary-advent-v4-'+(DEMO?'demo':'official'),1);
+      req.onupgradeneeded=()=>req.result.createObjectStore('audio');
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>resolve(null);
+    });
+    async function audioOperation(mode,day,data){
+      const db=await dbPromise;
+      if(!db) throw new Error('This browser cannot save audio files.');
+      return await new Promise((resolve,reject)=>{
+        let tx=db.transaction('audio',mode==='get'?'readonly':'readwrite');
+        let request=mode==='get'?tx.objectStore('audio').get(day):mode==='put'?tx.objectStore('audio').put(data,day):tx.objectStore('audio').delete(day);
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+    }
+    const persist=()=>localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    const identity=name=>name.trim().replace(/\s+/g,' ').toLocaleLowerCase();
+    const nowDay=()=>{
+      if(DEMO)return 1;
+      const d=new Date(),y=d.getFullYear(),m=d.getMonth();
+      if(y<2026||(y===2026&&m<11))return 0;
+      if(y>2026||(y===2026&&m>11))return 25;
+      return Math.min(25,d.getDate());
+    };
+    const saveRecord=()=>{
+      if(!player)return;
+      let id=identity(player),previous=state.scores[id];
+      if(!previous)state.scores[id]={name:player,answers:{}};
+      persist();
+    };
+    const record=()=>state.scores[identity(player)] || {name:player,answers:{}};
+    const played=d=>Boolean(player&&record().answers&&record().answers[d]);
+    function show(which){
+      for(const id of ['loginView','calendarView','gameView'])$(id).classList.toggle('hidden',id!==which);
+      $('leaderboardPanel').classList.toggle('hidden',which==='loginView');
+    }
+    function showCalendar(){
+      show('calendarView');
+      $('greeting').textContent=`Hello ${player}! One door opens each day — no peeking ahead 👀`;
+      const day=nowDay(),completed=Object.keys(record().answers||{}).length;
+      $('progressText').textContent=`${completed} of 24 cases completed`;
+      $('progressFill').style.width=(completed/24*100)+'%';
+      const grid=$('calendarGrid');grid.replaceChildren();
+      for(let d=1;d<=24;d++){
+        const done=played(d),active=day===d&&!done,passed=d<day&&!done;
+        let el=document.createElement('button');el.type='button';el.className='day '+(done?'completed':active?'available':passed?'past':'locked');
+        el.disabled=!active;
+        let big=document.createElement('strong'),small=document.createElement('span');big.textContent=String(d).padStart(2,'0');
+        small.textContent=done?'✓ Completed':active?'🎧 PLAY TODAY':passed?'Day passed':'🔒 Locked';
+        el.append(big,small);if(active)el.onclick=()=>openCase(d);grid.append(el);
+      }
+      $('calendarMessage').textContent=day===0?'🎁 The challenge starts on 1 December 2026.':day>24?'🎄 The challenge is over. Thank you for playing!':played(day)?'✅ You have completed today’s case. The next door unlocks tomorrow.':'🎵 Today’s mystery is waiting for you. You have one attempt to guess!';
+      renderLeaderboard();
+    }
+    function openCase(d){
+      if(d!==nowDay()||played(d))return showCalendar();
+      activeDay=d;selected=null;playable=false;$('caseTag').textContent='CASE #'+String(d).padStart(2,'0');
+      $('revealPanel').classList.add('hidden');$('submitAnswer').classList.remove('hidden');$('submitAnswer').disabled=true;
+      $('answerChoices').replaceChildren();
+      for(const name of state.names){let btn=document.createElement('button');btn.type='button';btn.className='choice';btn.textContent=name;btn.disabled=true;btn.onclick=()=>{if(!playable)return;selected=name;for(const c of $('answerChoices').children)c.classList.toggle('selected',c===btn);$('submitAnswer').disabled=false;};$('answerChoices').append(btn);}
+      show('gameView');loadPlayerAudio(d);
+    }
+    async function loadPlayerAudio(d){
+      const wrap=$('audioPlayer');wrap.replaceChildren();if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
+      const config=state.cases[d];
+      if(!config&&!(DEMO&&d===1)){wrap.textContent='The organizer has not configured this case yet.';$('submitAnswer').disabled=true;return;}
+      if(config&&config.hasAudio){
+        try {const blob=await audioOperation('get',d);if(blob){previewUrl=URL.createObjectURL(blob);let a=document.createElement('audio');a.controls=true;a.src=previewUrl;wrap.append(a);playable=true;for(const c of $('answerChoices').children)c.disabled=false;return;}}catch(e){}
+      }
+      if(DEMO&&d===1&&!config){
+        const button=document.createElement('button');button.className='btn alt';button.textContent='▶ Listen to the original demo tune';button.onclick=playOriginalTune;wrap.append(button);
+        let p=document.createElement('p');p.className='subtle';p.textContent='Demo-only melody created for this test. Upload your own authorized excerpt in Organizer to replace it.';wrap.append(p);playable=true;for(const c of $('answerChoices').children)c.disabled=false;return;
+      }
+      wrap.textContent='No audio is ready for this case. Ask the organizer to upload a clip.';
+      $('submitAnswer').disabled=true;
+    }
+    function playOriginalTune(){
+      const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return;
+      const ctx=new AudioContext(),notes=[392,440,523.25,659.25,587.33,523.25,440,392,523.25,659.25,783.99,659.25];
+      notes.forEach((freq,i)=>{const oscillator=ctx.createOscillator(),gain=ctx.createGain(),at=ctx.currentTime+.06+i*.28;oscillator.type='triangle';oscillator.frequency.value=freq;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.08,at+.025);gain.gain.exponentialRampToValueAtTime(.001,at+.25);oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start(at);oscillator.stop(at+.27);});
+    }
+    function submitAnswer(){
+      if(!player||!selected||!playable||activeDay!==nowDay()||played(activeDay)){showCalendar();return;}
+      const config=state.cases[activeDay],correct=config?.owner||(DEMO&&activeDay===1?'Djawad':null);
+      if(!correct){alert('Case not configured.');return;}
+      const winner=selected===correct;
+      record().answers[activeDay]={guess:selected,correct,points:winner?10:0,at:new Date().toISOString()};persist();
+      $('submitAnswer').classList.add('hidden');$('revealPanel').classList.remove('hidden');
+      $('revealName').textContent=correct+'! 🎤';
+      $('revealText').textContent=winner?'🎉 WELL DONE! You found the musical culprit. +10 points!':'🔎 Mystery solved! This time you scored 0 points. Come back tomorrow!';
+      if(winner)launchFireworks();renderLeaderboard();
+    }
+    function renderLeaderboard(){
+      const list=$('leaderboard');list.replaceChildren();
+      const rows=Object.values(state.scores).map(r=>({...r,points:Object.values(r.answers||{}).reduce((sum,a)=>sum+a.points,0)})).sort((a,b)=>b.points-a.points);
+      if(!rows.length){let el=document.createElement('p');el.className='subtle';el.textContent='No scores yet — be the first detective!';list.append(el);return;}
+      rows.forEach((r,i)=>{let row=document.createElement('div');row.className='score';let name=document.createElement('span'),points=document.createElement('b');name.textContent=(['🥇','🥈','🥉'][i]||(i+1)+'.')+' '+r.name;points.textContent=r.points+' pts';row.append(name,points);list.append(row);});
+    }
+    function renderAdminCases(){
+      $('adminCases').replaceChildren();
+      for(let day=1;day<=24;day++){
+        let info=state.cases[day],ready=Boolean(info?.title&&info?.artist&&info?.owner&&info?.hasAudio);
+        let button=document.createElement('button');button.type='button';button.className='admin-day '+(adminDay===day?'selected':ready?'ready':'');
+        const number=document.createElement('b'),status=document.createElement('small');number.textContent=String(day).padStart(2,'0');status.textContent=ready?'✓ READY':info?'◑ DRAFT':'○ EMPTY';button.append(number,status);button.onclick=()=>selectAdminDay(day);$('adminCases').append(button);
+      }
+      const readyCount=Object.values(state.cases).filter(c=>c.title&&c.artist&&c.owner&&c.hasAudio).length;
+      $('configuredCount').textContent=readyCount+' / 24 cases fully configured. '+(readyCount===24?'🎉 Everything is ready!':'Select a case to add or edit its song.');
+    }
+    function updateOwnerOptions(selectedOwner=''){
+      $('songOwner').replaceChildren();let placeholder=new Option('Select the correct colleague','');$('songOwner').add(placeholder);
+      for(const name of state.names)$('songOwner').add(new Option(name,name));
+      $('songOwner').value=selectedOwner;
+    }
+    function selectAdminDay(day){
+      adminDay=day;const info=state.cases[day]||{};
+      $('editingTitle').textContent='🎁 Case '+String(day).padStart(2,'0')+' — '+(info.title?'Edit song':'Add a song');
+      $('songTitle').value=info.title||'';$('songArtist').value=info.artist||'';updateOwnerOptions(info.owner||'');
+      $('songAudio').value='';$('removeAudio').checked=false;
+      $('audioStatus').textContent=info.hasAudio?'✓ Audio uploaded and saved. Choose a new file to replace it.':'No audio uploaded yet.';
+      $('caseStatus').textContent='';renderAdminCases();
+    }
+    async function saveCase(e){
+      e.preventDefault();const title=$('songTitle').value.trim(),artist=$('songArtist').value.trim(),owner=$('songOwner').value;
+      if(!title||!artist||!owner)return;
+      const file=$('songAudio').files[0],remove=$('removeAudio').checked;
+      if(file&&!file.type.startsWith('audio/')){$('caseStatus').textContent='Please upload an audio file.';return;}
+      if(file&&file.size>25*1024*1024){$('caseStatus').textContent='Please choose an excerpt below 25 MB.';return;}
+      $('saveCaseBtn').disabled=true;$('caseStatus').textContent='Saving...';
+      let hasAudio=Boolean(state.cases[adminDay]?.hasAudio);
+      try {
+        if(remove&&!file){await audioOperation('delete',adminDay);hasAudio=false;}
+        if(file){await audioOperation('put',adminDay,file);hasAudio=true;}
+        state.cases[adminDay]={title,artist,owner,hasAudio};persist();
+        selectAdminDay(adminDay);$('caseStatus').textContent='✅ Case '+adminDay+' saved! You can edit it whenever you need.';
+      }catch(err){$('caseStatus').textContent='Could not save this file in this browser. Try a shorter excerpt.';}
+      $('saveCaseBtn').disabled=false;
+    }
+    async function clearCase(){
+      if(!confirm('Clear the song and answer for case '+adminDay+'?'))return;
+      try{await audioOperation('delete',adminDay);}catch(e){}
+      delete state.cases[adminDay];persist();selectAdminDay(adminDay);$('caseStatus').textContent='Case cleared. You can configure it again.';
+    }
+    function saveSuspects(){
+      const names=$('suspectsInput').value.split('\n').map(v=>v.trim()).filter(Boolean);
+      if(names.length<2||names.length>40){$('suspectsStatus').textContent='Please enter between 2 and 40 colleagues.';return;}
+      if(new Set(names.map(n=>n.toLowerCase())).size!==names.length){$('suspectsStatus').textContent='Each colleague must have a unique name.';return;}
+      state.names=names;persist();selectAdminDay(adminDay);$('suspectsStatus').textContent='✅ Colleagues updated.';
+    }
+    async function exportBackup(){
+      $('backupStatus').textContent='Preparing backup with audio. This may take a moment...';
+      try {
+        const audio={};
+        for(let d=1;d<=24;d++){
+          if(!state.cases[d]?.hasAudio)continue;
+          const blob=await audioOperation('get',d);
+          if(!blob)throw new Error('Audio missing for case '+d+'.');
+          audio[d]=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});
+        }
+        const payload={format:'scary-advent-organizer-v1',names:state.names,cases:state.cases,audio};
+        const url=URL.createObjectURL(new Blob([JSON.stringify(payload)],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='scary-advent-organizer-backup-'+(DEMO?'demo':'official')+'.json';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),3000);
+        $('backupStatus').textContent='✅ Backup downloaded. Store it safely and do not share the answers with players.';
+      } catch(err){$('backupStatus').textContent='Backup failed: '+err.message;}
+    }
+    async function importBackup(e){
+      const file=e.target.files[0];e.target.value='';if(!file)return;
+      if(!confirm('Replace all configured songs and correct answers in this browser with this backup?'))return;
+      $('backupStatus').textContent='Restoring backup...';
+      try{
+        const data=JSON.parse(await file.text());
+        if(data.format!=='scary-advent-organizer-v1'||!Array.isArray(data.names)||!data.cases||!data.audio)throw new Error('Not a Scary organizer backup.');
+        for(let d=1;d<=24;d++){
+          let encoded=data.audio[d];
+          if(encoded){if(!/^data:audio\//.test(encoded))throw new Error('Invalid audio data in case '+d+'.');let blob=await (await fetch(encoded)).blob();await audioOperation('put',d,blob);}
+          else await audioOperation('delete',d);
+        }
+        state.names=data.names;state.cases=data.cases;persist();$('suspectsInput').value=state.names.join('\n');selectAdminDay(adminDay);
+        $('backupStatus').textContent='✅ Backup restored. All 24 case settings are editable again.';
+      }catch(err){$('backupStatus').textContent='Restore failed: '+err.message;}
+    }
+    function openAdmin(){
+      $('adminView').classList.remove('hidden');$('adminView').scrollIntoView({behavior:'smooth'});
+      $('suspectsInput').value=state.names.join('\n');selectAdminDay(adminDay);
+    }
+    $('adminAccess').onclick=()=>{
+      if(!unlocked){const code=prompt('Enter the organizer access code:');if(code!=='DJADJA'){if(code!==null)alert('Incorrect organizer code.');return;}unlocked=true;}
+      openAdmin();
+    };
+    $('closeAdmin').onclick=()=>{$('adminView').classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'});};
+    $('loginForm').onsubmit=e=>{e.preventDefault();player=($('firstName').value.trim()+' '+$('lastName').value.trim()).replace(/\s+/g,' ');saveRecord();showCalendar();};
+    $('switchPlayer').onclick=()=>{player=null;show('loginView');$('loginForm').reset();};
+    $('backToCalendar').onclick=showCalendar;$('finishCase').onclick=showCalendar;
+    $('submitAnswer').onclick=submitAnswer;
+    $('caseForm').onsubmit=saveCase;$('saveSuspects').onclick=saveSuspects;$('clearCase').onclick=clearCase;
+    $('exportBackup').onclick=exportBackup;$('importBackup').onchange=importBackup;
+    $('resetDemo').onclick=()=>{if(confirm('Reset all local player scores and checked boxes?')){state.scores={};persist();player=null;show('loginView');$('loginForm').reset();renderLeaderboard();$('adminView').classList.add('hidden');}};
+
+    // Accessible orange-gold fireworks for a correct answer.
+    const canvas=$('fireworks'),ctx=canvas.getContext('2d');let particles=[];
+    const sizeCanvas=()=>{canvas.width=innerWidth;canvas.height=innerHeight;};window.addEventListener('resize',sizeCanvas);sizeCanvas();
+    function launchFireworks(){
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+      for(let burst=0;burst<6;burst++){const x=canvas.width*(.2+.6*Math.random()),y=canvas.height*(.12+.45*Math.random());
+        for(let n=0;n<52;n++){const angle=Math.random()*2*Math.PI,speed=1.5+Math.random()*4;
+          particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:60+Math.random()*15,color:['#f87520','#ffbb4b','#fff1d8','#ff5b38'][n%4]});}}
+    }
+    function animate(){ctx.clearRect(0,0,canvas.width,canvas.height);particles=particles.filter(p=>p.life>0);
+      for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=.045;p.life--;ctx.globalAlpha=Math.min(1,p.life/30);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.4,0,2*Math.PI);ctx.fill();}
+      ctx.globalAlpha=1;requestAnimationFrame(animate);
+    }animate();
+    $('suspectsInput').value=state.names.join('\n');selectAdminDay(1);renderLeaderboard();
+    // Always start with identification, even when the same browser was used earlier.
+    show('loginView');
+  })();
+  </script>
+</body>
+</html>
