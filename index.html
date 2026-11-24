@@ -64,13 +64,17 @@
       <div class="divider"></div><h3>🧪 Challenge settings</h3><p class="muted">Private simulation in this browser only. Official songs are used, but test scores are separate. Reloading returns to official mode.</p><div class="grid2"><div><label for="testDate">Simulated December day</label><select id="testDate"></select></div><div class="buttons"><button id="startTest" class="btn">Start simulation</button><button id="stopTest" class="btn dark">Return to official mode</button></div></div><p id="testStatus" class="status"></p><div class="divider"></div><h3>👥 Add your 16 colleagues</h3><p class="muted">Write one full name per line. Previously added colleagues are preserved.</p>
       <textarea id="rosterInput" rows="5" placeholder="Djawad Lastname&#10;Mohamed Lastname&#10;Andrey Lastname"></textarea>
       <div class="buttons"><button id="saveRoster" class="btn small">Add colleagues</button><span id="rosterStatus" class="status" role="status"></span></div>
+      <div class="divider"></div><h3>👥 Manage colleagues <span id="rosterCount" class="muted"></span></h3>
+      <p class="muted">Edit names or remove unused participants. Songs and answers are protected.</p>
+      <input id="rosterSearch" placeholder="Search a colleague…" aria-label="Search colleagues"/>
+      <div id="rosterList" class="vote-list"></div><p id="manageStatus" class="status" role="status"></p>
       <div class="admin-grid">
         <div><h3>🎄 24 calendar cases</h3><p class="muted">Green = ready, orange = selected</p><div class="admin-days" id="adminDays"></div><p class="notice" id="readyCount"></p></div>
         <div class="editor"><h3 id="editHeading">Edit case 01</h3><form id="caseForm"><label for="titleInput">Song title</label><input id="titleInput" required placeholder="Song title"/><label for="artistInput">Artist</label><input id="artistInput" required placeholder="Artist"/><label for="ownerInput">Correct colleague</label><select id="ownerInput" required></select><label for="audioInput">Audio excerpt — MP3/WAV/M4A, about 3 MB max</label><input id="audioInput" type="file" accept="audio/*"/><p class="muted" id="audioInfo">No saved audio yet.</p><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="deleteAudio" style="width:auto"/><label for="deleteAudio" style="margin:0">Remove saved audio</label></div><div class="buttons"><button type="submit" id="saveCase" class="btn">💾 Save case</button><button type="button" id="clearCase" class="btn light">Clear case</button></div><div id="caseStatus" class="status" role="status"></div></form></div>
       </div>
       <div class="divider"></div><h3>📊 Participant answers</h3><div class="buttons"><button id="downloadAnswers" class="btn light small">Download answers as CSV</button><button id="resetDemo" class="btn light small">Reset all test answers</button><button id="resetDay" class="btn light small">Reset selected test day</button><button id="exportRanking" class="btn light small">Download ranking CSV</button></div><div id="adminVotes" class="vote-list"></div>
     </section>
-    <footer>🧡 JINGLE JAM — Every track has a story. Every colleague is a suspect.</footer>
+    <footer>🧡 JINGLE JAM — Every track has a story. Every colleague is a suspect.<div style="margin-top:8px;font-weight:600">Designed and produced by Djawad Zoubert</div></footer>
   </main>
 
   <script type="module">
@@ -183,8 +187,29 @@
       }
       const ready=list.filter(c=>c.song_title&&c.artist&&c.correct_participant_id&&c.audio_path).length;
       $('readyCount').textContent=`${ready} / 24 cases fully configured.`;
-      $('rosterInput').value='';selectDay(editDay,false);renderVotes();
+      $('rosterInput').value='';selectDay(editDay,false);renderVotes();renderRoster();
       $('resetDemo').classList.toggle('hidden',!DEMO);$('resetDay').classList.toggle('hidden',!DEMO||testDay===25);$('testStatus').textContent=DEMO?`Simulation active: December ${testDay}. Test scores only.`:'Official mode — real dates.';
+    }
+    function renderRoster(){
+      const people=admin.people||[],q=$('rosterSearch').value.trim().toLowerCase(),list=$('rosterList');
+      $('rosterCount').textContent=`(${people.length} registered)`;list.replaceChildren();
+      for(const p of people.filter(p=>`${p.first_name} ${p.last_name}`.toLowerCase().includes(q))){
+        const row=document.createElement('div');row.className='vote-row';row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+        const name=document.createElement('strong');name.style.flex='1';name.textContent=`${p.first_name} ${p.last_name}`;
+        const edit=document.createElement('button');edit.className='btn light small';edit.textContent='Edit';edit.onclick=()=>{const first=prompt('First name',p.first_name);if(first===null)return;const last=prompt('Last name',p.last_name);if(last===null)return;managePerson('/admin-edit-person',{id:p.id,first_name:first,last_name:last});};
+        const del=document.createElement('button');del.className='btn light small';del.style.color='#a32020';del.textContent='Delete';del.onclick=()=>{if(confirm(`Delete ${name.textContent}? This cannot be undone.`))managePerson('/admin-delete-person',{id:p.id});};
+        row.append(name,edit,del);list.append(row);
+      }
+      if(!list.children.length)list.textContent='No colleagues found.';
+    }
+    $('rosterSearch').addEventListener('input',renderRoster);
+    let managingPerson=false;
+    async function managePerson(route,payload){
+      if(managingPerson)return;managingPerson=true;status('manageStatus','Saving…');
+      try{const result=await api(route,'POST',payload);admin.people=result.people;renderRoster();
+        const owner=$('ownerInput'),selected=owner.value;owner.replaceChildren(new Option('Select colleague',''));for(const p of admin.people)owner.add(new Option(`${p.first_name} ${p.last_name}`,p.id));owner.value=selected;
+        renderVotes();await restorePlayer();status('manageStatus','Colleagues updated.');
+      }catch(e){status('manageStatus',e.message,true);}finally{managingPerson=false;}
     }
     function selectDay(day,redraw=true){
       editDay=day;const row=admin.cases.find(c=>c.day_number===day)||{};
