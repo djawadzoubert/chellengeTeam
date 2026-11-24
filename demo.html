@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#f87520" />
-  <title>Jingle Jam — Demo · 2 December 2026</title>
+  <title>Jingle Jam — Demo · 1 December 2026</title>
   <style>
     :root{--orange:#f87520;--dark:#6a320f;--ink:#301d11;--paper:#fffaf5;--line:#f0d2b9;--muted:#806349;--green:#2c7e51}
     *{box-sizing:border-box}body{margin:0;font:16px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:radial-gradient(circle at 10% 0,#ffddb5 0,transparent 29%),radial-gradient(circle at 95% 3%,#ffc391 0,transparent 24%),#fff0df;min-height:100vh}
@@ -25,7 +25,7 @@
 <body>
   <canvas id="fireworks" aria-hidden="true"></canvas>
   <main class="shell">
-    <div class="topbar"><div class="brand">🎄 JINGLE JAM · TEAM CHALLENGE</div><div class="top-actions"><span id="modeBadge" class="badge demo">DEMO · 2 DEC 2026</span><span id="connectionBadge" class="badge">Checking connection…</span><button id="organizerButton" class="btn dark small">🔐 Organizer</button></div></div>
+    <div class="topbar"><div class="brand">🎄 JINGLE JAM · TEAM CHALLENGE</div><div class="top-actions"><span id="modeBadge" class="badge demo">DEMO · 1 DEC 2026</span><span id="connectionBadge" class="badge">Checking connection…</span><button id="organizerButton" class="btn dark small">🔐 Organizer</button></div></div>
     <header class="hero"><small>THE MUSICAL ADVENT CHALLENGE</small><h1>WHO PICKED<br>THIS TRACK?</h1><p>24 days. 24 mystery tracks. One team. Who knows their colleagues best?</p><div class="symbols">🎧 ✨ 🎄 🎆</div></header>
 
     <section id="loginView" class="panel">
@@ -75,23 +75,25 @@
 
   <script type="module">
     import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
-    const DEMO=true; // Full game flow, with the date fixed to 2 December 2026.
+    const DEMO=true; // Full game flow, with the date fixed to 1 December 2026.
     const SUPABASE_URL='https://fijrjgveofimecrlygez.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY='sb_publishable_cXgTDnxxddEYcFfYW_Z0xw_ZBKClU9T';
     const API=`${SUPABASE_URL}/functions/v1/jingle-api`;
     const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,flowType:'implicit'}});
-    const organizerClient=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'jingle-organizer-auth',persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
+    let organizerCode='';
     const $=id=>document.getElementById(id);
     const MODE=DEMO?'demo':'official';
     let state={participant:null,today:0,people:[],answers:[],leaderboard:[]},admin=null,editDay=1,chosen=null,activeDay=null,playable=false,unlocked=false;
-    if(DEMO){$('modeBadge').textContent='DEMO · 2 DEC 2026';$('modeBadge').classList.add('demo');}
+    if(DEMO){$('modeBadge').textContent='DEMO · 1 DEC 2026';$('modeBadge').classList.add('demo');}
 
     function status(id,msg,bad=false){const el=$(id);el.textContent=msg;el.className=(el.className.replace(/\b(error|good)\b/g,'').trim()+' '+(bad?'error':'good')).trim();}
     function show(view){for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
     async function session(){return (await client.auth.getSession()).data.session;}
     async function api(route,method='GET',body){
-      const sess=route.startsWith('/admin-')?(await organizerClient.auth.getSession()).data.session:await session();
-      const response=await fetch(API+route,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(sess?{'Authorization':`Bearer ${sess.access_token}`}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+      const isAdmin=route.startsWith('/admin-');
+      const sess=isAdmin?null:await session();
+      if(isAdmin&&!route.includes('mode='))route+=(route.includes('?')?'&':'?')+'mode='+MODE;
+      const response=await fetch(API+route,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(isAdmin?{'x-organizer-code':organizerCode}:{}),...(sess?{'Authorization':`Bearer ${sess.access_token}`}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
       const data=await response.json().catch(()=>({error:'The server returned an invalid response.'}));
       if(!response.ok)throw new Error(data.error||`Request failed: ${response.status}`);
       return data;
@@ -171,7 +173,7 @@
     }
     async function sendAdminEmail(e){
       e.preventDefault();const password=$('adminEmail').value;const button=e.currentTarget.querySelector('button');button.disabled=true;status('adminEmailStatus','Checking organizer code…');
-      try{const {error}=await organizerClient.auth.signInWithPassword({email:'djawad.zoubert@orange.com',password});if(error)throw error;$('adminEmail').value='';await loadAdmin();}
+      try{organizerCode=password;$('adminEmail').value='';await loadAdmin();}
       catch(err){status('adminEmailStatus',err.message,true);}finally{button.disabled=false;}
     }
     function renderAdmin(){
@@ -230,7 +232,7 @@
 
     $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
     $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;
-    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;await organizerClient.auth.signOut({scope:'local'});};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
+    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;organizerCode='';};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
     checkConnection();restorePlayer();setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
   </script>
 </body>
