@@ -52,9 +52,9 @@
     <section id="leaderboardPanel" class="panel hidden"><div class="section-head"><div><h2>🏆 Leaderboard</h2><p class="muted">One shared ranking for everyone — updated automatically.</p></div><button id="refreshScores" class="btn light small">↻ Refresh</button></div><div id="leaderboard" class="leaderboard"></div></section>
 
     <section id="adminEntry" class="panel hidden">
-      <div class="section-head"><div><h2>🔐 Organizer access</h2><p class="muted">Only the verified organizer email can edit the 24 mystery songs.</p></div><button id="closeAdminEntry" class="btn light small">Close</button></div>
-      <form id="adminEmailForm"><label for="adminEmail">Organizer email</label><input id="adminEmail" type="email" required placeholder="your.name@company.com"/><div class="buttons"><button class="btn" type="submit">Send me a sign-in link</button><button id="checkAdmin" class="btn light" type="button">I've signed in — continue</button></div><p id="adminEmailStatus" class="status" role="status"></p></form>
-      <div class="notice">The organizer code opens this screen, but a verified email is required before the server allows song uploads or answer changes.</div>
+      <div class="section-head"><div><h2>🔐 Organizer access</h2><p class="muted">Enter your private organizer code to edit the 24 mystery songs.</p></div><button id="closeAdminEntry" class="btn light small">Close</button></div>
+      <form id="adminEmailForm"><label for="adminEmail">Organizer code</label><input id="adminEmail" type="password" required autocomplete="current-password" placeholder="Enter your organizer code"/><div class="buttons"><button class="btn" type="submit">Unlock Organizer Space</button></div><p id="adminEmailStatus" class="status" role="status"></p></form>
+      <div class="notice">Your code is verified securely by Supabase. No email link is required.</div>
     </section>
 
     <section id="adminView" class="panel hidden">
@@ -80,6 +80,7 @@
     const SUPABASE_PUBLISHABLE_KEY='sb_publishable_cXgTDnxxddEYcFfYW_Z0xw_ZBKClU9T';
     const API=`${SUPABASE_URL}/functions/v1/jingle-api`;
     const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    const organizerClient=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{storageKey:'jingle-organizer-auth',persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
     const $=id=>document.getElementById(id);
     const MODE=DEMO?'demo':'official';
     let state={participant:null,today:0,people:[],answers:[],leaderboard:[]},admin=null,editDay=1,chosen=null,activeDay=null,playable=false,unlocked=false;
@@ -89,7 +90,7 @@
     function show(view){for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
     async function session(){return (await client.auth.getSession()).data.session;}
     async function api(route,method='GET',body){
-      const sess=await session();
+      const sess=route.startsWith('/admin-')?(await organizerClient.auth.getSession()).data.session:await session();
       const response=await fetch(API+route,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(sess?{'Authorization':`Bearer ${sess.access_token}`}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
       const data=await response.json().catch(()=>({error:'The server returned an invalid response.'}));
       if(!response.ok)throw new Error(data.error||`Request failed: ${response.status}`);
@@ -163,18 +164,15 @@
       }catch{show('loginView');}
     }
     function showAdminEntry(){ $('adminEntry').classList.remove('hidden');$('adminEntry').scrollIntoView({behavior:'smooth'}); }
-    async function openAdmin(){
-      if(!unlocked){const code=prompt('Organizer code:');if(code!=='DJADJA'){if(code!==null)alert('Incorrect organizer code.');return;}unlocked=true;}
-      showAdminEntry();await loadAdmin();
-    }
+    async function openAdmin(){showAdminEntry();$('adminEmail').focus();}
     async function loadAdmin(){
       try{admin=await api(`/admin-data?mode=${MODE}`);$('adminEntry').classList.add('hidden');$('adminView').classList.remove('hidden');renderAdmin();}
-      catch(err){status('adminEmailStatus','Organizer email verification required. Enter your email and request a sign-in link.',true);}
+      catch(err){status('adminEmailStatus',err.message,true);}
     }
     async function sendAdminEmail(e){
-      e.preventDefault();const email=$('adminEmail').value.trim();status('adminEmailStatus','Sending your sign-in email…');
-      const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
-      status('adminEmailStatus',error?error.message:'Check your inbox, click the link, then open Organizer again.',Boolean(error));
+      e.preventDefault();const password=$('adminEmail').value;const button=e.currentTarget.querySelector('button');button.disabled=true;status('adminEmailStatus','Checking organizer code…');
+      try{const {error}=await organizerClient.auth.signInWithPassword({email:'djawad.zoubert@orange.com',password});if(error)throw error;$('adminEmail').value='';await loadAdmin();}
+      catch(err){status('adminEmailStatus',err.message,true);}finally{button.disabled=false;}
     }
     function renderAdmin(){
       const grid=$('adminDays');grid.replaceChildren();const list=admin.cases||[];
@@ -231,8 +229,8 @@
     function animate(){ctx.clearRect(0,0,fireworksCanvas.width,fireworksCanvas.height);particles=particles.filter(p=>p.life>0);for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=.035;p.life--;ctx.globalAlpha=p.life/70;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;requestAnimationFrame(animate);}animate();
 
     $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
-    $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;$('checkAdmin').onclick=loadAdmin;
-    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=()=>$('adminView').classList.add('hidden');$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
+    $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;
+    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;await organizerClient.auth.signOut({scope:'local'});};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
     checkConnection();restorePlayer();setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
   </script>
 </body>
