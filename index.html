@@ -32,7 +32,7 @@
     <section id="loginView" class="panel">
       <h2>Welcome, music detective! 🕵️</h2>
       <p class="muted">Enter your first and last name to find your personal Advent Calendar.</p>
-      <form id="loginForm"><div class="grid2"><div><label for="firstName">First name</label><input id="firstName" required maxlength="60" autocomplete="given-name" placeholder="First name" /></div><div><label for="lastName">Last name</label><input id="lastName" required maxlength="60" autocomplete="family-name" placeholder="Last name" /></div></div><div class="buttons"><button class="btn" type="submit" id="loginButton">Enter my calendar</button></div><div class="status" id="loginStatus" role="status"></div></form>
+      <form id="loginForm"><div class="grid2"><div><label for="firstName">First name</label><input id="firstName" required maxlength="60" autocomplete="given-name" placeholder="First name" /></div><div><label for="lastName">Last name</label><input id="lastName" required maxlength="60" autocomplete="family-name" placeholder="Last name" /></div></div><div class="buttons"><button class="btn" type="submit" id="loginButton">Enter my calendar</button><button class="btn light small" type="button" id="reconnectRecovered">Reconnect after recovery</button></div><div class="status" id="loginStatus" role="status"></div></form>
     </section>
 
     <section id="calendarView" class="panel hidden">
@@ -88,9 +88,37 @@
 
     function status(id,msg,bad=false){const el=$(id);el.textContent=msg;el.className=(el.className.replace(/\b(error|good)\b/g,'').trim()+' '+(bad?'error':'good')).trim();}
     function show(view){if(view!=='gameView')$('musicPlayer').replaceChildren();for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
-    async function session(){return (await client.auth.getSession()).data.session;}
+    // Preserve the existing Supabase storage key (including across releases).
+    const playerMarker='jingle-jam-player-linked-v1';
+    let sessionRead=null, joining=null;
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    function rememberPlayer(){try{localStorage.setItem(playerMarker,'1');}catch{}}
+    function wasLinked(){try{return localStorage.getItem(playerMarker)==='1';}catch{return false;}}
+    async function session(){
+      if(sessionRead)return sessionRead;
+      sessionRead=(async()=>{
+        for(let attempt=0;attempt<3;attempt++){
+          try{const {data,error}=await client.auth.getSession();if(error)throw error;return data.session;}
+          catch(err){if(attempt===2)throw new Error('Could not restore your session. Please retry. No new account was created.');await pause(350*(attempt+1));}
+        }
+      })();
+      try{return await sessionRead;}finally{sessionRead=null;}
+    }
+    async function ensurePlayerSession(){
+      if(joining)return joining;
+      joining=(async()=>{
+        let sess=await session();
+        if(!sess){await pause(500);sess=await session();}
+        if(sess)return sess;
+        if(wasLinked())throw new Error('Your previous session is missing. Ask the organizer to recover your access, then use Reconnect after recovery.');
+        const {data,error}=await client.auth.signInAnonymously();
+        if(error||!data.session)throw new Error(error?.message||'Could not establish a session. Please retry.');
+        return data.session;
+      })();
+      try{return await joining;}finally{joining=null;}
+    }
     async function api(route,method='GET',body){
-      const sess=await session();
+      const sess=(route.startsWith('/admin-')||route==='/health')?null:await session();
       const u=new URL(API+route);u.searchParams.set('mode',DEMO?'demo':'official');if(DEMO)u.searchParams.set('test_day',String(testDay));
       const response=await fetch(u,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(organizerCode?{'x-organizer-code':organizerCode}:{}),...(sess?{'Authorization':`Bearer ${sess.access_token}`}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
       const data=await response.json().catch(()=>({error:'The server returned an invalid response.'}));
@@ -119,9 +147,9 @@
       e.preventDefault();const first=$('firstName').value.trim(),last=$('lastName').value.trim();
       $('loginButton').disabled=true;status('loginStatus','Connecting…');
       try{
-        if(!await session()){const {error}=await client.auth.signInAnonymously();if(error)throw new Error(error.message+' — Enable Anonymous Sign-Ins in Supabase Auth.');}
+        await ensurePlayerSession();
         const joined=await api('/join','POST',{first_name:first,last_name:last});
-        await refreshProgress();show('calendarView');$('calendarView').scrollIntoView({behavior:'smooth'});
+        rememberPlayer();await refreshProgress();show('calendarView');$('calendarView').scrollIntoView({behavior:'smooth'});
         status('loginStatus',`Welcome ${joined.name}!`);
       }catch(err){status('loginStatus',err.message,true);}finally{$('loginButton').disabled=false;}
     }
@@ -159,9 +187,9 @@
     async function switchPlayer(){alert('This browser is linked to your player account. Keep using it to retain access. Ask the organizer to recover access if you need to change accounts.');}
     async function restorePlayer(){
       try{
-        if(!await session())return;
+        if(!await session()){show('loginView');if(wasLinked())status('loginStatus','Previous session missing. Please retry or ask the organizer to recover your access.',true);return;}
         await refreshProgress();
-        if(state.participant){show('calendarView');return;}
+        if(state.participant){rememberPlayer();show('calendarView');return;}
         show('loginView');
       }catch(err){show('loginView');status('loginStatus','Could not restore your session. Refresh this page before signing in again. '+err.message,true);}
     }
@@ -243,7 +271,7 @@
       $(state.participant?'calendarView':'loginView').scrollIntoView({behavior:'smooth'});
     }
     $('startTest').onclick=()=>changeMode(true);$('stopTest').onclick=()=>changeMode(false);
-    $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
+    $('reconnectRecovered').onclick=async()=>{if(!confirm('Use only after the organizer has reset your access. Continue?'))return;try{if(!await session())localStorage.removeItem(playerMarker);status('loginStatus','Enter your name to reconnect.');}catch(err){status('loginStatus',err.message,true);}};$('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
     $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;
     $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;/* Keep organizer authorization in memory for simulation. */};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=()=>resetDemo();$('resetDay').onclick=()=>resetDemo(testDay);$('exportRanking').onclick=exportRanking;$('resetPlayerLogin').onclick=resetPlayerLogin;
     $('loginButton').disabled=true;checkConnection();restorePlayer().finally(()=>{$('loginButton').disabled=false;});setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
