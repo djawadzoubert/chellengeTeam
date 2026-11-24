@@ -32,7 +32,7 @@
     <section id="loginView" class="panel">
       <h2>Welcome, music detective! 🕵️</h2>
       <p class="muted">Enter your first and last name to find your personal Advent Calendar.</p>
-      <form id="loginForm"><div class="grid2"><div><label for="firstName">First name</label><input id="firstName" required maxlength="60" autocomplete="given-name" placeholder="First name" /></div><div><label for="lastName">Last name</label><input id="lastName" required maxlength="60" autocomplete="family-name" placeholder="Last name" /></div></div><div class="buttons"><button class="btn" type="submit" id="loginButton">Enter my calendar</button><button class="btn light small" type="button" id="reconnectRecovered">Reconnect after recovery</button></div><div class="status" id="loginStatus" role="status"></div></form>
+      <form id="loginForm"><div class="grid2"><div><label for="firstName">First name</label><input id="firstName" required maxlength="60" autocomplete="given-name" placeholder="First name" /></div><div><label for="lastName">Last name</label><input id="lastName" required maxlength="60" autocomplete="family-name" placeholder="Last name" /></div></div><div class="buttons"><button class="btn" type="submit" id="loginButton">Enter my calendar</button></div><div class="status" id="loginStatus" role="status"></div></form>
     </section>
 
     <section id="calendarView" class="panel hidden">
@@ -69,18 +69,15 @@
         <div class="editor"><h3 id="editHeading">Edit case 01</h3><form id="caseForm"><label for="titleInput">Song title</label><input id="titleInput" required placeholder="Song title"/><label for="artistInput">Artist</label><input id="artistInput" required placeholder="Artist"/><label for="ownerInput">Correct colleague</label><select id="ownerInput" required></select><label for="audioInput">Audio excerpt — MP3/WAV/M4A, about 3 MB max</label><input id="audioInput" type="file" accept="audio/*"/><p class="muted" id="audioInfo">No saved audio yet.</p><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="deleteAudio" style="width:auto"/><label for="deleteAudio" style="margin:0">Remove saved audio</label></div><div class="buttons"><button type="submit" id="saveCase" class="btn">💾 Save case</button><button type="button" id="clearCase" class="btn light">Clear case</button></div><div id="caseStatus" class="status" role="status"></div></form></div>
       </div>
       <div class="divider"></div><h3>📊 Participant answers</h3><div class="buttons"><button id="downloadAnswers" class="btn light small">Download answers as CSV</button><button id="resetDemo" class="btn light small">Reset all test answers</button><button id="resetDay" class="btn light small">Reset selected test day</button><button id="exportRanking" class="btn light small">Download ranking CSV</button></div><div id="adminVotes" class="vote-list"></div>
-      <div class="divider"></div><h3>🛠️ Recover a player's access</h3><p class="muted">If somebody changes device, reset their login without erasing their points.</p><div class="grid2"><select id="resetPlayerSelect"></select><button id="resetPlayerLogin" class="btn light">Reset selected player's login</button></div>
     </section>
     <footer>🧡 JINGLE JAM — Every track has a story. Every colleague is a suspect.</footer>
   </main>
 
   <script type="module">
-    import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
     let DEMO=false, testDay=1, organizerCode="";
     const SUPABASE_URL='https://fijrjgveofimecrlygez.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY='sb_publishable_cXgTDnxxddEYcFfYW_Z0xw_ZBKClU9T';
     const API=`${SUPABASE_URL}/functions/v1/jingle-api`;
-    const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
     const $=id=>document.getElementById(id);
     let MODE='official';
     let state={participant:null,today:0,people:[],answers:[],leaderboard:[]},admin=null,editDay=1,chosen=null,activeDay=null,playable=false,unlocked=false;
@@ -88,39 +85,13 @@
 
     function status(id,msg,bad=false){const el=$(id);el.textContent=msg;el.className=(el.className.replace(/\b(error|good)\b/g,'').trim()+' '+(bad?'error':'good')).trim();}
     function show(view){if(view!=='gameView')$('musicPlayer').replaceChildren();for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
-    // Preserve the existing Supabase storage key (including across releases).
-    const playerMarker='jingle-jam-player-linked-v1';
-    let sessionRead=null, joining=null;
-    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-    function rememberPlayer(){try{localStorage.setItem(playerMarker,'1');}catch{}}
-    function wasLinked(){try{return localStorage.getItem(playerMarker)==='1';}catch{return false;}}
-    async function session(){
-      if(sessionRead)return sessionRead;
-      sessionRead=(async()=>{
-        for(let attempt=0;attempt<3;attempt++){
-          try{const {data,error}=await client.auth.getSession();if(error)throw error;return data.session;}
-          catch(err){if(attempt===2)throw new Error('Could not restore your session. Please retry. No new account was created.');await pause(350*(attempt+1));}
-        }
-      })();
-      try{return await sessionRead;}finally{sessionRead=null;}
-    }
-    async function ensurePlayerSession(){
-      if(joining)return joining;
-      joining=(async()=>{
-        let sess=await session();
-        if(!sess){await pause(500);sess=await session();}
-        if(sess)return sess;
-        if(wasLinked())throw new Error('Your previous session is missing. Ask the organizer to recover your access, then use Reconnect after recovery.');
-        const {data,error}=await client.auth.signInAnonymously();
-        if(error||!data.session)throw new Error(error?.message||'Could not establish a session. Please retry.');
-        return data.session;
-      })();
-      try{return await joining;}finally{joining=null;}
-    }
+    const playerKey='jingle-jam-selected-player-v1';
+    let playerId=null;
+    try{playerId=localStorage.getItem(playerKey);}catch{}
+    function rememberPlayer(id){playerId=id;try{if(id)localStorage.setItem(playerKey,id);else localStorage.removeItem(playerKey);}catch{}}
     async function api(route,method='GET',body){
-      const sess=(route.startsWith('/admin-')||route==='/health')?null:await session();
       const u=new URL(API+route);u.searchParams.set('mode',DEMO?'demo':'official');if(DEMO)u.searchParams.set('test_day',String(testDay));
-      const response=await fetch(u,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(organizerCode?{'x-organizer-code':organizerCode}:{}),...(sess?{'Authorization':`Bearer ${sess.access_token}`}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+      const response=await fetch(u,{method,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,...(organizerCode?{'x-organizer-code':organizerCode}:{}),...(playerId?{'x-player-id':playerId}:{}) ,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
       const data=await response.json().catch(()=>({error:'The server returned an invalid response.'}));
       if(!response.ok)throw new Error(data.error||`Request failed: ${response.status}`);
       return data;
@@ -147,9 +118,8 @@
       e.preventDefault();const first=$('firstName').value.trim(),last=$('lastName').value.trim();
       $('loginButton').disabled=true;status('loginStatus','Connecting…');
       try{
-        await ensurePlayerSession();
         const joined=await api('/join','POST',{first_name:first,last_name:last});
-        rememberPlayer();await refreshProgress();show('calendarView');$('calendarView').scrollIntoView({behavior:'smooth'});
+        rememberPlayer(joined.id);await refreshProgress();show('calendarView');$('calendarView').scrollIntoView({behavior:'smooth'});
         status('loginStatus',`Welcome ${joined.name}!`);
       }catch(err){status('loginStatus',err.message,true);}finally{$('loginButton').disabled=false;}
     }
@@ -184,14 +154,14 @@
         await refreshProgress(false);
       }catch(err){status('gameStatus',err.message,true);$('submitGuess').disabled=false;}
     }
-    async function switchPlayer(){alert('This browser is linked to your player account. Keep using it to retain access. Ask the organizer to recover access if you need to change accounts.');}
+    async function switchPlayer(){rememberPlayer(null);state={participant:null,today:0,people:[],answers:[],leaderboard:[]};$('firstName').value='';$('lastName').value='';status('loginStatus','');show('loginView');$('loginView').scrollIntoView({behavior:'smooth'});}
     async function restorePlayer(){
       try{
-        if(!await session()){show('loginView');if(wasLinked())status('loginStatus','Previous session missing. Please retry or ask the organizer to recover your access.',true);return;}
+        if(!playerId){show('loginView');return;}
         await refreshProgress();
-        if(state.participant){rememberPlayer();show('calendarView');return;}
-        show('loginView');
-      }catch(err){show('loginView');status('loginStatus','Could not restore your session. Refresh this page before signing in again. '+err.message,true);}
+        if(state.participant){show('calendarView');return;}
+        rememberPlayer(null);show('loginView');
+      }catch(err){show('loginView');status('loginStatus','Could not restore your calendar. Please retry. '+err.message,true);}
     }
     function showAdminEntry(){ $('adminEntry').classList.remove('hidden');$('adminEntry').scrollIntoView({behavior:'smooth'}); }
     async function openAdmin(){if(organizerCode){await loadAdmin();return;}showAdminEntry();$('adminEmail').focus();}
@@ -214,7 +184,6 @@
       const ready=list.filter(c=>c.song_title&&c.artist&&c.correct_participant_id&&c.audio_path).length;
       $('readyCount').textContent=`${ready} / 24 cases fully configured.`;
       $('rosterInput').value='';selectDay(editDay,false);renderVotes();
-      const recover=$('resetPlayerSelect');recover.replaceChildren();admin.people.forEach(p=>recover.add(new Option(`${p.first_name} ${p.last_name}`,p.id)));
       $('resetDemo').classList.toggle('hidden',!DEMO);$('resetDay').classList.toggle('hidden',!DEMO||testDay===25);$('testStatus').textContent=DEMO?`Simulation active: December ${testDay}. Test scores only.`:'Official mode — real dates.';
     }
     function selectDay(day,redraw=true){
@@ -252,9 +221,6 @@
     async function resetDemo(day){if(!DEMO)return;if(!confirm(day?`Erase test answers for December ${day}?`:'Erase ALL test answers for everyone?'))return;try{await api('/admin-reset-demo','POST',day?{day}:{});await loadAdmin();await restorePlayer();alert('Test answers reset.');}catch(err){alert(err.message);}}
     function exportRanking(){if(!admin)return;const elapsed=Math.min(24,Math.max(0,admin.today-1));const rows=admin.people.map(p=>{const v=admin.votes.filter(x=>x.participant_id===p.id);return [p.first_name+' '+p.last_name,v.reduce((n,x)=>n+x.points,0),v.filter(x=>x.points===10).length,v.filter(x=>x.points===0).length,elapsed-new Set(v.filter(x=>x.day_number<=elapsed).map(x=>x.day_number)).size];}).sort((a,b)=>b[1]-a[1]);const csv=[['Player','Points','Correct','Incorrect','Missed closed days'],...rows].map(r=>r.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`jingle-${MODE}-ranking.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 
-    async function resetPlayerLogin(){const id=$('resetPlayerSelect').value;if(!id||!confirm('Reset login for this participant? Their points will remain.'))return;
-      try{await api('/admin-reset-login','POST',{participant_id:id});await loadAdmin();alert('Participant can sign in again on another device.');}catch(err){alert(err.message);}
-    }
     const fireworksCanvas=$('fireworks'),ctx=fireworksCanvas.getContext('2d');let particles=[];
     const resize=()=>{fireworksCanvas.width=innerWidth;fireworksCanvas.height=innerHeight};resize();addEventListener('resize',resize);
     function launchFireworks(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;for(let k=0;k<6;k++){const x=innerWidth*(.2+Math.random()*.6),y=innerHeight*(.12+Math.random()*.45);for(let i=0;i<55;i++){const a=Math.random()*2*Math.PI,v=1.3+Math.random()*4;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:70,color:['#ff8c31','#ffda72','#ffffff','#f15522'][i%4]});}}}
@@ -271,9 +237,9 @@
       $(state.participant?'calendarView':'loginView').scrollIntoView({behavior:'smooth'});
     }
     $('startTest').onclick=()=>changeMode(true);$('stopTest').onclick=()=>changeMode(false);
-    $('reconnectRecovered').onclick=async()=>{if(!confirm('Use only after the organizer has reset your access. Continue?'))return;try{if(!await session())localStorage.removeItem(playerMarker);status('loginStatus','Enter your name to reconnect.');}catch(err){status('loginStatus',err.message,true);}};$('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
+    $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
     $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;
-    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;/* Keep organizer authorization in memory for simulation. */};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=()=>resetDemo();$('resetDay').onclick=()=>resetDemo(testDay);$('exportRanking').onclick=exportRanking;$('resetPlayerLogin').onclick=resetPlayerLogin;
+    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;/* Keep organizer authorization in memory for simulation. */};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=()=>resetDemo();$('resetDay').onclick=()=>resetDemo(testDay);$('exportRanking').onclick=exportRanking;
     $('loginButton').disabled=true;checkConnection();restorePlayer().finally(()=>{$('loginButton').disabled=false;});setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
   </script>
 </body>
