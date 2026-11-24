@@ -14,7 +14,7 @@
     .panel{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:25px;margin:17px 0;box-shadow:0 10px 26px #7c3d1215}.hidden{display:none!important}h2{font-size:clamp(22px,3vw,28px);margin:0 0 9px;letter-spacing:-.03em}h3{font-size:19px;margin:0 0 10px}.muted{color:var(--muted);font-size:14px;margin:6px 0 15px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}label{display:block;font-size:13px;font-weight:850;color:#92501e;margin:9px 0 6px}input,select,textarea{display:block;width:100%;padding:12px 13px;border:1px solid #eac8aa;border-radius:12px;background:#fff;color:#342011;font-size:15px}input[type=file]{padding:10px;font-size:13px;background:#fff6ec}textarea{resize:vertical}.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:17px;align-items:center}.btn{border:0;background:var(--orange);color:#fff;padding:12px 16px;font-weight:850;border-radius:12px;box-shadow:0 6px 14px #d85b1822}.btn:hover{filter:brightness(1.05)}.btn.dark{background:#65371e}.btn.light{background:#ffe5cb;color:#883e14;box-shadow:none}.btn.small{font-size:13px;padding:9px 12px}.btn:disabled{opacity:.45;cursor:not-allowed}
     .notice{border-radius:13px;background:#fff0dc;padding:12px 14px;color:#784421;font-size:14px;margin:13px 0}.error{color:#a32916;font-weight:700}.good{color:#227444;font-weight:750}.status{min-height:18px;margin-top:8px;font-size:14px}
-    .calendar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}.day{min-height:106px;border:1px solid #edcaa9;border-radius:15px;background:linear-gradient(140deg,#fff3e3,#ffe8d0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#814015}.day strong{font-size:27px}.day span{font-size:11px;font-weight:850}.day.available{background:linear-gradient(140deg,#ffad54,#f56a16);color:white;box-shadow:0 9px 20px #eb6d1936}.day.available:hover{transform:translateY(-2px)}.day.done{background:#e5f5e8;color:#267443;border-color:#a4dcbd;cursor:not-allowed}.day.locked{opacity:.6;cursor:not-allowed}.day.past{background:#f0ebe6;color:#96816c;cursor:not-allowed}
+    .calendar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}.day{min-height:106px;border:1px solid #edcaa9;border-radius:15px;background:linear-gradient(140deg,#fff3e3,#ffe8d0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#814015}.day strong{font-size:27px}.day span{font-size:11px;font-weight:850}.day.available{background:linear-gradient(140deg,#ffad54,#f56a16);color:white;box-shadow:0 9px 20px #eb6d1936}.day.available:hover{transform:translateY(-2px)}.day.done{background:#e5f5e8;color:#267443;border-color:#a4dcbd;cursor:pointer}.day.locked{opacity:.6;cursor:not-allowed}.day.past{background:#f0ebe6;color:#96816c;cursor:not-allowed}
     .progress{background:#f4dfcc;height:10px;border-radius:99px;overflow:hidden}.progress div{height:100%;width:0;background:linear-gradient(90deg,#f87520,#ffd06c)}.choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.choice{border:1px solid #e6bb97;border-radius:12px;background:#fff0df;color:#79421e;font-weight:820;padding:15px 9px}.choice.selected{background:#f87520;color:white;border-color:#f87520}.choice:hover{filter:brightness(.98)}.reveal{background:linear-gradient(135deg,#ffa64f,#f36b17);color:white;border-radius:18px;padding:25px;margin:16px 0}.reveal h2{font-size:36px}.leaderboard{display:grid;gap:8px}.score{display:flex;justify-content:space-between;gap:10px;background:#fff0e0;border-radius:11px;padding:11px 13px;font-size:14px}audio{width:100%;margin:10px 0}
     .admin-grid{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(320px,1.4fr);gap:18px;margin-top:17px}.admin-days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.admin-day{background:#fff0e1;border:1px solid #ebc5a7;color:#9a4e1c;border-radius:12px;padding:11px 4px;font-weight:900}.admin-day strong{display:block;font-size:20px}.admin-day small{display:block;font-size:11px}.admin-day.selected{background:#f87520;color:#fff;border-color:#f87520}.admin-day.ready:not(.selected){background:#e1f4e8;color:#267043;border-color:#b4dfc4}.editor{background:#fff2e6;border:1px solid #eed2bc;border-radius:17px;padding:19px}.divider{height:1px;background:#ebd3bf;margin:21px 0}.vote-list{max-height:320px;overflow:auto}.vote-row{padding:10px 0;border-bottom:1px solid #ecd0bb;font-size:13px}#fireworks{position:fixed;inset:0;pointer-events:none;z-index:30}footer{text-align:center;color:#977155;font-size:12px;margin-top:20px}
     @media(max-width:820px){.calendar{grid-template-columns:repeat(4,1fr)}.choices{grid-template-columns:repeat(2,1fr)}.admin-grid{grid-template-columns:1fr}}
@@ -67,7 +67,7 @@
         <div><h3>🎄 24 calendar cases</h3><p class="muted">Green = ready, orange = selected</p><div class="admin-days" id="adminDays"></div><p class="notice" id="readyCount"></p></div>
         <div class="editor"><h3 id="editHeading">Edit case 01</h3><form id="caseForm"><label for="titleInput">Song title</label><input id="titleInput" required placeholder="Song title"/><label for="artistInput">Artist</label><input id="artistInput" required placeholder="Artist"/><label for="ownerInput">Correct colleague</label><select id="ownerInput" required></select><label for="audioInput">Audio excerpt — MP3/WAV/M4A, about 3 MB max</label><input id="audioInput" type="file" accept="audio/*"/><p class="muted" id="audioInfo">No saved audio yet.</p><div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="deleteAudio" style="width:auto"/><label for="deleteAudio" style="margin:0">Remove saved audio</label></div><div class="buttons"><button type="submit" id="saveCase" class="btn">💾 Save case</button><button type="button" id="clearCase" class="btn light">Clear case</button></div><div id="caseStatus" class="status" role="status"></div></form></div>
       </div>
-      <div class="divider"></div><h3>📊 Participant answers</h3><div class="buttons"><button id="downloadAnswers" class="btn light small">Download answers as CSV</button><button id="resetDemo" class="btn light small">Reset test answers</button></div><div id="adminVotes" class="vote-list"></div>
+      <div class="divider"></div><h3>📊 Participant answers</h3><div class="buttons"><button id="downloadAnswers" class="btn light small">Download answers as CSV</button><button id="resetDemo" class="btn light small">Reset all test answers</button><button id="resetDay" class="btn light small">Reset selected test day</button><button id="exportRanking" class="btn light small">Download ranking CSV</button></div><div id="adminVotes" class="vote-list"></div>
       <div class="divider"></div><h3>🛠️ Recover a player's access</h3><p class="muted">If somebody changes device, reset their login without erasing their points.</p><div class="grid2"><select id="resetPlayerSelect"></select><button id="resetPlayerLogin" class="btn light">Reset selected player's login</button></div>
     </section>
     <footer>🧡 JINGLE JAM — Every track has a story. Every colleague is a suspect.</footer>
@@ -86,7 +86,7 @@
     if(DEMO){$('modeBadge').textContent='DEMO · 2 DEC 2026';$('modeBadge').classList.add('demo');}
 
     function status(id,msg,bad=false){const el=$(id);el.textContent=msg;el.className=(el.className.replace(/\b(error|good)\b/g,'').trim()+' '+(bad?'error':'good')).trim();}
-    function show(view){for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
+    function show(view){if(view!=='gameView')$('musicPlayer').replaceChildren();for(const name of ['loginView','calendarView','gameView'])$(name).classList.toggle('hidden',name!==view);$('leaderboardPanel').classList.toggle('hidden',view==='loginView');}
     async function session(){return (await client.auth.getSession()).data.session;}
     async function api(route,method='GET',body){
       const sess=await session();
@@ -106,13 +106,13 @@
       const grid=$('calendarGrid');grid.replaceChildren();
       for(let d=1;d<=24;d++){
         const complete=done.has(d),available=d===today&&!complete;
-        const node=document.createElement('button');node.type='button';node.className='day '+(complete?'done':available?'available':d<today?'past':'locked');node.disabled=!available;
+        const node=document.createElement('button');node.type='button';node.className='day '+(complete?'done':available?'available':d<today?'past':'locked');node.disabled=!(available||(complete&&d<=today));
         const num=document.createElement('strong');num.textContent=String(d).padStart(2,'0');const text=document.createElement('span');text.textContent=complete?'✓ COMPLETED':available?'▶ PLAY TODAY':d<today?'MISSED':'🔒 LOCKED';node.append(num,text);
-        if(available)node.onclick=()=>openCase(d);grid.append(node);
+        if(available||(complete&&d<=today))node.onclick=()=>openCase(d);grid.append(node);
       }
       $('calendarMessage').textContent=today===0?'The calendar opens on 1 December 2026.':today===25?'The Advent challenge has ended. Thank you for playing!':done.has(today)?'You have completed today’s case. Come back tomorrow!':'Today’s mystery is ready. You can play once.';
     }
-    function renderLeaderboard(){const root=$('leaderboard');root.replaceChildren();if(!state.leaderboard.length){root.textContent='No scores yet.';return;}state.leaderboard.forEach((row,i)=>{const el=document.createElement('div');el.className='score';const name=document.createElement('span'),points=document.createElement('b');name.textContent=(`${['🥇','🥈','🥉'][i]||`${i+1}.`} ${row.name}`);points.textContent=`${row.points} pts`;el.append(name,points);root.append(el);});}
+    function renderLeaderboard(){const root=$('leaderboard');root.replaceChildren();if(state.today===25&&state.leaderboard.length){const podium=document.createElement('div');podium.className='notice';podium.textContent='🏆 FINAL PODIUM — '+state.leaderboard.slice(0,3).map((r,i)=>`${['🥇','🥈','🥉'][i]} ${r.name}: ${r.points} pts`).join(' · ');root.append(podium);}if(!state.leaderboard.length){root.textContent='No scores yet.';return;}state.leaderboard.forEach((row,i)=>{const el=document.createElement('div');el.className='score';const name=document.createElement('span'),points=document.createElement('b');name.textContent=(`${['🥇','🥈','🥉'][i]||`${i+1}.`} ${row.name}`);points.textContent=`${row.points} pts`;el.append(name,points);root.append(el);});}
     async function refreshProgress(redraw=true){const data=await api(`/progress?mode=${MODE}`);state=data;renderLeaderboard();if(redraw)renderCalendar();}
     async function login(e){
       e.preventDefault();const first=$('firstName').value.trim(),last=$('lastName').value.trim();
@@ -128,7 +128,7 @@
       state.people.forEach(p=>{const b=document.createElement('button');b.type='button';b.className='choice';b.textContent=p.name;b.disabled=true;b.onclick=()=>{if(!playable)return;chosen=p.id;for(const c of root.children)c.classList.toggle('selected',c===b);$('submitGuess').disabled=false;};root.append(b);});
     }
     async function openCase(day){
-      if(day!==state.today||calculateCompleted().has(day))return;
+      if(day>state.today||(day!==state.today&&!calculateCompleted().has(day)))return;
       activeDay=day;renderChoices();$('caseLabel').textContent=`CASE #${String(day).padStart(2,'0')}`;
       $('reveal').classList.add('hidden');$('submitGuess').classList.remove('hidden');status('gameStatus','');
       show('gameView');$('musicPlayer').textContent='Loading today’s mystery audio…';
@@ -139,6 +139,7 @@
         if(result.demo_sound){const button=document.createElement('button');button.className='btn dark';button.textContent='▶ Play the demo melody';button.onclick=playOriginalTune;area.append(button);}else{
           const audio=document.createElement('audio');audio.controls=true;audio.preload='metadata';audio.src=result.audio_url;area.append(audio);
         }
+        if(result.completed){$('choices').replaceChildren();$('submitGuess').classList.add('hidden');$('reveal').classList.remove('hidden');$('revealOwner').textContent=result.owner+'! 🎤';$('revealMessage').textContent=`Your guess: ${result.guess} · ${result.points} points`; $('revealSong').textContent=`${result.song_title} — ${result.artist}`;return;}
         playable=true;for(const b of $('choices').children)b.disabled=false;
       }catch(err){status('gameStatus',err.message,true);$('musicPlayer').textContent='Could not load the mystery audio.';}
     }
@@ -185,7 +186,7 @@
       $('readyCount').textContent=`${ready} / 24 cases fully configured.`;
       $('rosterInput').value='';selectDay(editDay,false);renderVotes();
       const recover=$('resetPlayerSelect');recover.replaceChildren();admin.people.forEach(p=>recover.add(new Option(`${p.first_name} ${p.last_name}`,p.id)));
-      $('resetDemo').classList.toggle('hidden',!DEMO);$('testStatus').textContent=DEMO?`Simulation active: December ${testDay}. Test scores only.`:'Official mode — real dates.';
+      $('resetDemo').classList.toggle('hidden',!DEMO);$('resetDay').classList.toggle('hidden',!DEMO);$('testStatus').textContent=DEMO?`Simulation active: December ${testDay}. Test scores only.`:'Official mode — real dates.';
     }
     function selectDay(day,redraw=true){
       editDay=day;const row=admin.cases.find(c=>c.day_number===day)||{};
@@ -195,7 +196,7 @@
       for(const p of admin.people)owner.add(new Option(`${p.first_name} ${p.last_name}`,p.id));
       owner.value=row.correct_participant_id||'';$('audioInput').value='';$('deleteAudio').checked=false;
       $('audioInfo').textContent=row.audio_path?'✓ Audio uploaded. Choose another file to replace it.':'No saved audio yet.';
-      status('caseStatus','');if(redraw)renderAdminDaysOnly();
+      $('saveCase').disabled=day<=admin.official_day;$('clearCase').disabled=day<=admin.official_day;status('caseStatus',day<=admin.official_day?'Published official case — locked.':'');if(redraw)renderAdminDaysOnly();
     }
     function renderAdminDaysOnly(){for(const [i,node] of [...$('adminDays').children].entries())node.classList.toggle('selected',i+1===editDay);}
     async function addRoster(){const names=$('rosterInput').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!names.length)return status('rosterStatus','Add at least one full name.',true);
@@ -219,7 +220,9 @@
       const csv=rows.map(r=>r.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
       const link=document.createElement('a');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));link.href=url;link.download=`jingle-jam-${MODE}-answers.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
     }
-    async function resetDemo(){if(!confirm('Erase ALL test answers for everyone?'))return;try{await api('/admin-reset-demo','POST',{});await loadAdmin();alert('Test answers reset.');}catch(err){alert(err.message);}}
+    async function resetDemo(day){if(!DEMO)return;if(!confirm(day?`Erase test answers for December ${day}?`:'Erase ALL test answers for everyone?'))return;try{await api('/admin-reset-demo','POST',day?{day}:{});await loadAdmin();await restorePlayer();alert('Test answers reset.');}catch(err){alert(err.message);}}
+    function exportRanking(){if(!admin)return;const elapsed=Math.min(24,Math.max(0,admin.today-1));const rows=admin.people.map(p=>{const v=admin.votes.filter(x=>x.participant_id===p.id);return [p.first_name+' '+p.last_name,v.reduce((n,x)=>n+x.points,0),v.filter(x=>x.points===10).length,v.filter(x=>x.points===0).length,elapsed-new Set(v.filter(x=>x.day_number<=elapsed).map(x=>x.day_number)).size];}).sort((a,b)=>b[1]-a[1]);const csv=[['Player','Points','Correct','Incorrect','Missed closed days'],...rows].map(r=>r.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`jingle-${MODE}-ranking.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
+
     async function resetPlayerLogin(){const id=$('resetPlayerSelect').value;if(!id||!confirm('Reset login for this participant? Their points will remain.'))return;
       try{await api('/admin-reset-login','POST',{participant_id:id});await loadAdmin();alert('Participant can sign in again on another device.');}catch(err){alert(err.message);}
     }
@@ -239,7 +242,7 @@
     $('startTest').onclick=()=>changeMode(true);$('stopTest').onclick=()=>changeMode(false);
     $('loginForm').onsubmit=login;$('switchPlayer').onclick=switchPlayer;$('backCalendar').onclick=()=>{show('calendarView');renderCalendar()};$('finishGame').onclick=async()=>{await refreshProgress();show('calendarView')};$('refreshCalendar').onclick=async()=>{await refreshProgress()};$('refreshScores').onclick=async()=>{await refreshProgress(false)};
     $('submitGuess').onclick=submitGuess;$('organizerButton').onclick=openAdmin;$('adminEmailForm').onsubmit=sendAdminEmail;
-    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;/* Keep organizer authorization in memory for simulation. */};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=resetDemo;$('resetPlayerLogin').onclick=resetPlayerLogin;
+    $('closeAdminEntry').onclick=()=>$('adminEntry').classList.add('hidden');$('closeAdmin').onclick=async()=>{$('adminView').classList.add('hidden');admin=null;/* Keep organizer authorization in memory for simulation. */};$('saveRoster').onclick=addRoster;$('caseForm').onsubmit=saveCase;$('clearCase').onclick=clearCase;$('downloadAnswers').onclick=downloadAnswers;$('resetDemo').onclick=()=>resetDemo();$('resetDay').onclick=()=>resetDemo(testDay);$('exportRanking').onclick=exportRanking;$('resetPlayerLogin').onclick=resetPlayerLogin;
     $('loginButton').disabled=true;checkConnection();restorePlayer().finally(()=>{$('loginButton').disabled=false;});setInterval(async()=>{if(state.participant&&$('gameView').classList.contains('hidden'))try{await refreshProgress()}catch{}},30000);
   </script>
 </body>
